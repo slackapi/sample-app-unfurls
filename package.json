@@ -1,0 +1,37 @@
+{
+  "name": "@slack/sample-link-previews",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An example Slack app that demonstrates use of App Unfurls",
+  "scripts": {
+    "basic": "node basic.js",
+    "interactive": "node interactive.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ankur Oberoi <aoberoi@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/client": "^3.8.1",
+    "@slack/events-api": "^1.0.1",
+    "body-parser": "^1.17.1",
+    "dotenv": "^4.0.0",
+    "es6-promisify": "^5.0.0",
+    "express": "^4.15.2",
+    "flickr-client": "0.0.4",
+    "flickr-photo-info": "0.0.1",
+    "flickr-photo-urls": "0.0.2",
+    "lodash.find": "^4.6.0",
+    "lodash.keyby": "^4.6.0",
+    "lodash.mapvalues": "^4.6.0",
+    "lodash.omit": "^4.5.0",
+    "lodash.sample": "^4.2.1",
+    "lodash.sortby": "^4.7.0",
+    "normalize-port": "^1.0.0",
+    "whatwg-url": "^4.5.0"
+  },
+  "devDependencies": {
+    "eslint": "^3.16.1",
+    "eslint-config-airbnb-base": "^11.1.0",
+    "eslint-plugin-import": "^2.2.0"
+  }
+}
