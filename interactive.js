@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const slackEventsAPI = require('@slack/events-api');
 const { WebClient } = require('@slack/client');
 const { getFlickrUrlData } = require('./lib/flickr');
+const { cloneAndCleanAttachment } = require('./lib/common');
 const keyBy = require('lodash.keyby');
 const omit = require('lodash.omit');
 const mapValues = require('lodash.mapvalues');
@@ -117,7 +118,7 @@ function messageAttachmentFromLink(link) {
 function handlePhotoDetailsInteraction(interaction, payload, done) {
   // Clone the originalAttachment so that we can send back a replacement with our own modifications
   const originalAttachment = payload.original_message.attachments[0];
-  const attachment = Object.assign({}, originalAttachment);
+  const attachment = cloneAndCleanAttachment(originalAttachment);
 
   // Parse out information from the general interaction and payload that is meaningful to photo details
   const action = payload.actions[0];
@@ -142,9 +143,9 @@ function handlePhotoDetailsInteraction(interaction, payload, done) {
       attachment.fields = attachment.fields.filter(f => f.title !== 'Albums');
       attachment.fields.push({
         title: 'Albums',
-        value: photoSets.map(set => `* ${set.title}`).join('\n'),
+        value: photoSets.map(set => `:small_blue_diamond: ${set.title}`).join('\n'),
       });
-      done({ attachments: [attachment] });
+      done(null, attachment);
       break;
     case 'list_pools':
       // As described above, the attachment is changed to focus on photo pools.
@@ -156,10 +157,10 @@ function handlePhotoDetailsInteraction(interaction, payload, done) {
       }
       attachment.fields = attachment.fields.filter(f => f.title !== 'Groups');
       attachment.fields.push({
-        title: 'groups',
-        value: photoPools.map(set => `* ${set.title}`).join('\n'),
+        title: 'Groups',
+        value: photoPools.map(pool => `:small_blue_diamond: ${pool.title}`).join('\n'),
       });
-      done({ attachments: [attachment] });
+      done(null, attachment);
       break;
     default:
       // As long as the above list of cases is exhaustive, there shouldn't be anything here
