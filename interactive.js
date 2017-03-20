@@ -82,7 +82,7 @@ function messageAttachmentFromLink(link) {
       // Conditionally add actions as long as the data is available
       const actions = [];
 
-      if (photo.sets.length > 0) {
+      if (photo.sets && photo.sets.length > 0) {
         actions.push({
           text: 'Albums',
           name: 'list_photosets',
@@ -91,7 +91,7 @@ function messageAttachmentFromLink(link) {
         });
       }
 
-      if (photo.pools.length > 0) {
+      if (photo.pools && photo.pools.length > 0) {
         actions.push({
           text: 'Groups',
           name: 'list_pools',
