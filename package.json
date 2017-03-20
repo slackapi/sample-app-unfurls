@@ -1,9 +1,10 @@
 {
-  "name": "@slack/sample-link-previews",
+  "name": "@slack/sample-app-unfurls",
   "version": "1.0.0",
   "private": true,
   "description": "An example Slack app that demonstrates use of App Unfurls",
   "scripts": {
+    "start": "node basic.js",
     "basic": "node basic.js",
     "interactive": "node interactive.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,7 +12,7 @@
   "author": "Ankur Oberoi <aoberoi@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "@slack/client": "^3.8.1",
+    "@slack/client": "^3.9.0",
     "@slack/events-api": "^1.0.1",
     "body-parser": "^1.17.1",
     "dotenv": "^4.0.0",
@@ -24,6 +25,7 @@
     "lodash.keyby": "^4.6.0",
     "lodash.mapvalues": "^4.6.0",
     "lodash.omit": "^4.5.0",
+    "lodash.pick": "^4.4.0",
     "lodash.sample": "^4.2.1",
     "lodash.sortby": "^4.7.0",
     "normalize-port": "^1.0.0",
