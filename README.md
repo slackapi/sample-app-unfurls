@@ -75,7 +75,7 @@ finally let Slack know how that this app has a prettier way to unfurl those part
 The example of adding interactivity to unfurls is in `interactive.js`.
 
 This example builds off of `basic.js` but adds interactive message buttons to each of the unfurls.
-This is an extremely powerful feature of unfurls, since buttons can but used to make updates and
+This is an extremely powerful feature of unfurls, since buttons can be used to make updates and
 *act* rather than just display information to a user. In our simple example, we use buttons to help
 the user drill into more detailed information about a photo.
 
