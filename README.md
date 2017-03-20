@@ -15,14 +15,26 @@ help you gain an understanding of how to make use of unfurls.
 You should start by [creating a Slack app](https://api.slack.com/slack-apps) and configuring it
 to use the Events API. This sample app uses the
 [Slack Event Adapter](https://github.com/slackapi/node-slack-events-api), where you can find some
-configuration steps to get the Events API ready to use in your app. Set up a subscription to the
-team event `link_shared`. Add an app unfurl domain for "flickr.com". Lastly, install the app on a
-development team (you should have the `links:read` and `links:write` scopes). Once the installation
-is complete, note the OAuth Access Token.
+configuration steps to get the Events API ready to use in your app.
 
-You also need to create a Flickr app to be able to use the API. You can create one from the
-[Flickr developer site](https://www.flickr.com/services/apps/create/). Once you create an app, note
-the API Key
+
+### Event Subscription
+
+Turn on Event Subscriptions for the Slack app. You must input and verify a Request URL, and the
+easiest way to do this is to
+[use a development proxy as described in the Events API module](https://github.com/slackapi/node-slack-events-api#configuration).
+The application listens for events at the path `/slack/events`. For example, the Request URL may
+look like `https://myappunfurlsample.ngrok.io/slack/events`.
+Create a subscription to the team event `link_shared`. Add an app unfurl domain for "flickr.com".
+Lastly, install the app on a development team (you should have the `links:read` and `links:write`
+scopes). Once the installation is complete, note the OAuth Access Token.
+
+### Flickr
+
+Create a Flickr app at the [Flickr developer site](https://www.flickr.com/services/apps/create/).
+Once you create an app, note the API Key.
+
+### Environment
 
 You should now have a Slack verification token and access token, as well as a Flickr API key. Clone
 this application locally. Create a new file named `.env` within the directory and place these values
@@ -43,6 +55,8 @@ example assumes you are using a currently supported LTS version of Node (at this
 The example of a basic unfurl is contained in `basic.js`.
 
 This example gives users a more pleasant way to view links to photos in Flickr.
+
+### Understanding the code
 
 In the code you'll find a the Slack Event Adapter being set up and used to subscribe to the
 `link_shared` event.
@@ -78,6 +92,17 @@ This example builds off of `basic.js` but adds interactive message buttons to ea
 This is an extremely powerful feature of unfurls, since buttons can be used to make updates and
 *act* rather than just display information to a user. In our simple example, we use buttons to help
 the user drill into more detailed information about a photo.
+
+### Additional set up
+
+The Slack app needs additional configuration to be able to use interactive messages (buttons).
+Return to the app's configuration page from [your list of apps](https://api.slack.com/apps).
+Navigate to the interactive messages section using the menu. Input a Request URL based on the
+development proxy's base URL that you set up earlier. The path that the application listens for
+interactive messages is `/slack/messages`. For example, the Request URL may look like
+`https://myappunfurlsample.ngrok.io/slack/messages`.
+
+### Understanding the code
 
 The main changes in this version is that the `messageAttachmentFromLink()` function now adds
 an array of `actions` to each attachment it produces. The attachment itself also gets a new
