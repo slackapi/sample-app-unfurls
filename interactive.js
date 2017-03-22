@@ -5,7 +5,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const slackEventsAPI = require('@slack/events-api');
 const { WebClient } = require('@slack/client');
-const { getFlickrUrlData } = require('./lib/flickr');
+const { getFlickrUrlData, getFlickrPhotoSets, getFlickrPhotoPools } = require('./lib/flickr');
 const { cloneAndCleanAttachment } = require('./lib/common');
 const keyBy = require('lodash.keyby');
 const omit = require('lodash.omit');
@@ -80,33 +80,22 @@ function messageAttachmentFromLink(link) {
         attachment.fields = fields;
       }
 
-      // Conditionally add actions as long as the data is available
-      const actions = [];
-
-      if (photo.sets && photo.sets.length > 0) {
-        actions.push({
+      // Add buttons for interactivity
+      attachment.callback_id = 'photo_details';
+      attachment.actions = [
+        {
           text: 'Albums',
           name: 'list_photosets',
           type: 'button',
-          value: JSON.stringify(photo.sets),
-        });
-      }
-
-      if (photo.pools && photo.pools.length > 0) {
-        actions.push({
+          value: photo.id,
+        },
+        {
           text: 'Groups',
           name: 'list_pools',
           type: 'button',
-          value: JSON.stringify(photo.pools),
-        });
-      }
-
-      if (actions.length !== 0) {
-        // Encoding a unique identifier for this interaction and the id of the photo in the
-        // callback_id so it can be inspected later
-        attachment.callback_id = `photo_details:${photo.id}`;
-        attachment.actions = actions;
-      }
+          value: photo.id,
+        },
+      ];
 
       return attachment;
     });
@@ -115,57 +104,62 @@ function messageAttachmentFromLink(link) {
 /**
  * Handle Slack interactive messages from `photo_details` interaction types
  */
-function handlePhotoDetailsInteraction(interaction, payload, done) {
+function handlePhotoDetailsInteraction(payload, done) {
   // Clone the originalAttachment so that we can send back a replacement with our own modifications
   const originalAttachment = payload.original_message.attachments[0];
   const attachment = cloneAndCleanAttachment(originalAttachment);
 
-  // Parse out information from the general interaction and payload that is meaningful to photo details
+  // Find the relevant action
   const action = payload.actions[0];
-  let photoSets;
-  let photoPools;
 
   // Since many buttons could have triggered a `photo_details` interaction, we choose to use another
   // switch statement to deal with each kind of button separately.
+  let attachmentPromise;
   switch (action.name) {
     case 'list_photosets':
       // Make modifications to the attachment to include the photo set details
       // In general, this is an opportunity to fetch more data, perform updates, or communicate
-      // with other systems to build a new attachment. In this simplified example, we already have
-      // the data so our handler simply changes the presentation of the attachment to focus on
-      // photo sets.
-      try {
-        photoSets = JSON.parse(action.value);
-      } catch (parseError) {
-        done(parseError);
-        return;
-      }
-      attachment.fields = attachment.fields.filter(f => f.title !== 'Albums');
-      attachment.fields.push({
-        title: 'Albums',
-        value: photoSets.map(set => `:small_blue_diamond: ${set.title}`).join('\n'),
-      });
-      done(null, attachment);
+      // with other systems to build a new attachment.
+      attachmentPromise = getFlickrPhotoSets(action.value)
+        .then((photoSets) => {
+          // If this isn't the first time the button was pressed, the field might already exist,
+          // so here we remove it so the content is essentially refreshed.
+          attachment.fields = attachment.fields ? attachment.fields.filter(f => f.title !== 'Albums') : [];
+          const field = {
+            title: 'Albums',
+          };
+          if (photoSets.length > 0) {
+            field.value = photoSets.map(set => `:small_blue_diamond: <${set.url}|${set.title}>`).join('\n');
+          } else {
+            field.value = 'This photo is not in any albums';
+          }
+          attachment.fields.push(field);
+          return attachment;
+        });
       break;
     case 'list_pools':
-      // As described above, the attachment is changed to focus on photo pools.
-      try {
-        photoPools = JSON.parse(action.value);
-      } catch (parseError) {
-        done(parseError);
-        return;
-      }
-      attachment.fields = attachment.fields.filter(f => f.title !== 'Groups');
-      attachment.fields.push({
-        title: 'Groups',
-        value: photoPools.map(pool => `:small_blue_diamond: ${pool.title}`).join('\n'),
-      });
-      done(null, attachment);
+      // As described above, the attachment is augmented to Group data
+      attachmentPromise = getFlickrPhotoPools(action.value)
+        .then((photoPools) => {
+          attachment.fields = attachment.fields ? attachment.fields.filter(f => f.title !== 'Groups') : [];
+          const field = {
+            title: 'Groups',
+          };
+          if (photoPools.length > 0) {
+            field.value = photoPools.map(pool => `:small_blue_diamond: <${pool.url}|${pool.title}>`).join('\n');
+          } else {
+            field.value = 'This photo is not in any groups';
+          }
+          attachment.fields.push(field);
+          return attachment;
+        });
       break;
     default:
       // As long as the above list of cases is exhaustive, there shouldn't be anything here
+      attachmentPromise = Promise.reject(new Error('Unhandled action'));
       break;
   }
+  attachmentPromise.then(a => done(null, a)).catch(done);
 }
 
 /**
@@ -190,12 +184,8 @@ function handleInteractiveMessages(req, res) {
     return;
   }
 
-  // Decoding the callback_id (which contains an identifier for the interaction and a photo ID)
-  const interaction = payload.callback_id.split(':');
-  const interactionType = interaction.shift();
-
   // Define a completion handler that is bound to the response for this request. Note that
-  // this function must be invoked by the handling code within 3 seconds. A more sophistocated
+  // this function must be invoked by the handling code within 3 seconds. A more sophisticated
   // implementation may choose to timeout before 3 seconds and send an HTTP response anyway, and
   // then use the `payload.response_url` to send a request once the completion handler is invoked.
   function callback(error, body) {
@@ -206,14 +196,15 @@ function handleInteractiveMessages(req, res) {
     }
   }
 
-  // This switch statement should have a case for the exhaustive set of interaction types
+  // This switch statement should have a case for the exhaustive set of callback identifiers
   // this application may handle. In this sample, we only have one: `photo_details`.
-  switch (interactionType) {
+  switch (payload.callback_id) {
     case 'photo_details':
-      handlePhotoDetailsInteraction(interaction, payload, callback);
+      handlePhotoDetailsInteraction(payload, callback);
       break;
     default:
       // As long as the above list of cases is exhaustive, there shouldn't be anything here
+      callback(new Error('Unhandled callack ID'));
       break;
   }
 }
@@ -253,7 +244,8 @@ const app = express();
 // Mount JSON body parser before the Events API middleware
 app.use(bodyParser.json());
 app.use('/slack/events', slackEvents.expressMiddleware());
-// Mount the `application/x-www-form-urlencoded` body parser before handling Slack interactive messages
+// Mount the `application/x-www-form-urlencoded` body parser before handling Slack interactive
+// messages
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use('/slack/messages', handleInteractiveMessages);
 // Start the server
