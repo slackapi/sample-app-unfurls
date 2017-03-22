@@ -10,6 +10,8 @@ building your own app which unfurls links. This sample uses Slack's own SDKs and
 choose to use another programming language or another set of tools, reading through the code will
 help you gain an understanding of how to make use of unfurls.
 
+![Demo](support/demo.gif "Demo")
+
 ## Set Up
 
 You should start by [creating a Slack app](https://api.slack.com/slack-apps) and configuring it
