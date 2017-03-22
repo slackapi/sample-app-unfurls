@@ -104,10 +104,10 @@ interactive messages is `/slack/messages`. For example, the Request URL may look
 
 ### Understanding the code
 
-The main changes in this version is that the `messageAttachmentFromLink()` function now adds
+The main change in this version is that the `messageAttachmentFromLink()` function now adds
 an array of `actions` to each attachment it produces. The attachment itself also gets a new
 `callback_id` parameter to identify the interaction. In this case we call the interaction
-`photo_details`.
+`"photo_details"`.
 
 Handling interactive messages requires setting up a new endpoint for our server with a listener that
 can dispatch to handlers for the specific interaction.
@@ -129,12 +129,8 @@ function handleInteractiveMessages(req, res) {
     return;
   }
 
-  // Decoding the callback_id (which contains an identifier for the interaction and a photo ID)
-  const interaction = payload.callback_id.split(':');
-  const interactionType = interaction.shift();
-
   // Define a completion handler that is bound to the response for this request. Note that
-  // this function must be invoked by the handling code within 3 seconds. A more sophistocated
+  // this function must be invoked by the handling code within 3 seconds. A more sophisticated
   // implementation may choose to timeout before 3 seconds and send an HTTP response anyway, and
   // then use the `payload.response_url` to send a request once the completion handler is invoked.
   function callback(error, body) {
@@ -145,14 +141,15 @@ function handleInteractiveMessages(req, res) {
     }
   }
 
-  // This switch statement should have a case for the exhaustive set of interaction types
+  // This switch statement should have a case for the exhaustive set of callback identifiers
   // this application may handle. In this sample, we only have one: `photo_details`.
-  switch (interactionType) {
+  switch (payload.callback_id) {
     case 'photo_details':
-      handlePhotoDetailsInteraction(interaction, payload, callback);
+      handlePhotoDetailsInteraction(payload, callback);
       break;
     default:
       // As long as the above list of cases is exhaustive, there shouldn't be anything here
+      callback(new Error('Unhandled callack ID'));
       break;
   }
 }
@@ -160,11 +157,9 @@ function handleInteractiveMessages(req, res) {
 
 Our listener does some basic validation and processing of the interactive message payload, and then
 dispatches the `photo_details` interactions from our previous attachment to a new function
-`handlePhotoDetailsInteraction()`. This is a very simple function that simply augments the
-original attachment with a new field for either the photo's groups or albums. Once the new
-attachment is built, the server respond to Slack with a new message payload, using our new attachment
-as the first item in the attachments array. Slack will ignore all message content in this response
-other than the first attachment in the attachment array.
+`handlePhotoDetailsInteraction()`. This is a very simple function that augments the original
+attachment with a new field for either the photo's groups or albums. Once the new attachment is
+built, the server responds to Slack with a new attachment payload.
 
-Now we have beautiful interactive unfurls that allow users to drill in deeper on content that
+Now we have beautiful interactive unfurls that allow users to drill deeper into content that
 was shared in a channel.
